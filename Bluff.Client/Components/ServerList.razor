@@ -1,0 +1,95 @@
+﻿@inject IServersHubService ServersService
+<link href="css/cite.css" rel="stylesheet" />
+
+
+<table>
+    <thead>
+        <tr>
+            <th style="font-size: 40px; text-align:center">Servers</th>
+        </tr>
+    </thead>
+    <tbody>
+         @foreach(string serverName in Servers)
+    {
+        <tr>
+            <td>
+                <a href="game/@serverName" class="serverName">@serverName</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table> 
+
+@if (showModal)
+{
+
+    <div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8)"
+    aria-modal="true" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" style="color: black">Create server</h4>
+                    <button @onclick="CloseModal" type="button" class="close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    Введите имя сервера: <br />
+                    <input id="groupName" type="text" required @bind-value="groupName" />  <br />
+                    Введите коичество игроков: <br />
+                    <input type="number" max="4" min="2" id="userToStart" @bind-value="userToStart" />
+                </div>
+                <div class="modal-footer">
+                    <input type="button" id="sendBtn" value="Создать сервер" @onclick="(async () => await CreateServer())" disabled="@isDisabled" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<Button @onclick="OpenModal" Color="ButtonColor.Primary" Outline="true"> Create server </Button>
+
+<Error />
+
+@code {
+    public List<string> Servers { get; set; } = new();
+
+    private bool isDisabled;
+    bool showModal = false;
+    private string groupName;
+    private int userToStart;
+
+    protected async override Task OnInitializedAsync()
+    {
+
+        isDisabled = true;
+
+        ServersService.CreateConnection("GetServerList", (List<string> servers) =>
+        {
+            Servers = servers;
+            this.StateHasChanged();
+        });
+
+        if (await ServersService.ConnectToHub())
+        {
+            isDisabled = false;
+            await ServersService.GetServerListRequest();
+        }
+
+        // временнный код
+        await ServersService.CreateGroup("aboba", 2);
+    }
+    void OpenModal()
+    {
+        showModal = true;
+    }
+
+    void CloseModal()
+    {
+        showModal = false;
+    }
+
+    public async Task CreateServer()
+    {
+        await ServersService.CreateGroup(groupName, userToStart);
+        CloseModal();
+    }
+}

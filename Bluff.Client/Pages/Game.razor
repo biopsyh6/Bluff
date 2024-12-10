@@ -1,0 +1,230 @@
+﻿@page "/game/{groupName}"
+@inject IInGameHubService inGameService
+@inject GameModel GameModel
+@inject IJSRuntime JSRuntime
+
+<svg id="background">
+    <g id="hexGrid"></g>
+    @* <g id="bet"></g> *@
+</svg>
+
+<h1>@groupName</h1>
+
+@if (GameModel.CurUser is null) @* Если польльзователь еще не ввел имя *@
+{
+    <Card Color="CardColor.Secondary" Class="mb-4" Style="width:18rem;">
+        <CardHeader>Пользователь</CardHeader>
+        <CardBody>
+            <p>Введите имя пользователя:</p>
+            <br />
+            <input id="userName" type="text" required @bind-value="usernameInput" />
+            <br />
+        </CardBody>
+        <CardFooter>
+            <input type="button" id="sendBtn" value="Подключиться к игре" @onclick="(() =>{ ConnectToServerRequest().Wait();})" />
+        </CardFooter>
+        </Card>
+}
+else 
+{
+    @if (readyUsers != GameModel.Clients.Count) @* Если пользователь подключился, но игроков для начала недостаточно *@
+    {
+        @* Тут список всех игроков *@
+        <p>
+            Игроки:
+        </p>
+        <ul>
+            @foreach (var client in GameModel.Clients)
+            {
+                <li>client - @client.Name</li>
+            }
+        </ul>
+
+        <div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8)"
+             aria-modal="true" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" style="color: black">Подтверждение</h4>
+                    </div>
+                    <div class="modal-body">
+                        <p style="color: black">Готово пользователей @readyUsers</p>
+                    </div>
+                    <div class="modal-footer">
+                        <input type="button" id="sendBtn" value="Готов" @onclick="(async () => await UserReadyRequest())" disabled="@(!isDisplay)" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else @* Если пользователь подключился и игра уже началась *@
+    {
+        @if(GameModel.State == GameState.ChangeMenu) @* Пользователь выбирает, как ему походить(2 кнопки) *@
+        {
+            <button @onclick="StartBetEvent">Cтавка</button>
+            <button @onclick="DisputeEvent">Оспаривание</button>
+            <br />
+            <br />
+        }
+        else if (GameModel.State == GameState.Bet) @* Пользователь делает ставку на поле *@
+        {
+            <div>
+                Сделайте вашу ставку:
+            </div>
+        }
+        else if (GameModel.State == GameState.Bet) @* Игра окончена *@
+        {
+            <div>
+                Игра завершилась
+            </div>
+        }
+        else  @* Пользователь ожидает, пока другой игрок сделает ставку *@
+        {
+            <div>
+                Ожидайте, пока пользователь введет ставку.
+            </div>
+        }
+
+        @* Компонент по отрисовке поля(там и логика выполненитя ставки) *@
+        <GameBoard />
+        <br />
+        <br />
+        <Clients />
+    }
+}
+
+@code {
+    // захардкоженная группа
+    [Parameter]
+    public string groupName { get; set; } // Название группы
+
+    // отображение кнопки готов
+    private bool isDisplay = false;
+    private bool isDisplayAllCubes = false;
+    private string? usernameInput; //Для привязки ввода имени пользователя
+    private int readyUsers = 0; //Количество готовых игроков
+
+
+    protected async override Task OnInitializedAsync()
+    {
+        GameModel.GameName = groupName;
+        GameModel.UpdatePage += this.StateHasChanged;
+
+        // запрос готовности у всех пользователей
+        inGameService.CreateConnection("HandleUserReadyCheck", async (Client client) =>
+        {
+            // добавляем подключенного пользователя
+            //this.clients.Add(client);
+            //GameModel.Clients.Add(client.Name);
+            await inGameService.GetClientsRequest(GameModel.GameName);
+            //осуществляем запрос готовности, путем отображения кнопки
+            isDisplay = true;
+
+            this.StateHasChanged();
+        });
+
+        // обработка подключенного пользователя
+        inGameService.CreateConnection("HandleUserConnected", (Client client) =>
+        {
+            // просто добавляем подключенного пользователя
+            //GameModel.Clients.Add(client.Name);
+            inGameService.GetClientsRequest(GameModel.GameName).Wait();
+
+            this.StateHasChanged();
+        }); 
+
+        // обработка начала игры
+        inGameService.CreateConnection("HandleGameStart", (Client client) =>
+        {
+            Console.WriteLine("In handle game start");
+            // определяем того, кто делает ставку
+            GameModel.Start(client.Name);
+            // получаем всех пользователей
+            inGameService.GetClientsRequest(GameModel.GameName).Wait();
+
+            this.StateHasChanged();
+        });
+
+        // обработка готовности игрока
+        inGameService.CreateConnection("HandleUserReady", (int userReadyAmount) =>
+        {
+            // устанавливаем количество готовых пользователей
+            readyUsers = userReadyAmount;
+
+            this.StateHasChanged();
+        });
+
+        // получение всех клиентов от сервера 
+        // (нужно когда пользователь только подключается к игре)
+        inGameService.CreateConnection("HandleGetAllClients", (List<Client> respClients) =>
+        {
+            GameModel.UpdatePlayersList(respClients);
+            this.StateHasChanged();
+        });
+
+        inGameService.CreateConnection("HandleWinner", (string winnerName) =>
+        {
+            GameModel.WinnerName = winnerName;
+            GameModel.State = GameState.EndGame;
+            Console.WriteLine(winnerName);
+            this.StateHasChanged();
+        });
+
+        await inGameService.ConnectToHub();
+
+        // получаем всех пользователей
+        await inGameService.GetClientsRequest(GameModel.GameName);
+    }
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("import", "/js/background.js");
+        }
+    }
+
+    // подключение к хабу
+    public async Task ConnectToServerRequest()
+    {
+        if (string.IsNullOrEmpty(usernameInput))
+            return;
+        GameModel.CurUser = usernameInput;
+
+        await inGameService.ConnectToServerRequest(GameModel.CurUser!, GameModel.GameName);
+
+        GameModel.CurUser = usernameInput;
+
+        this.StateHasChanged();
+    }
+
+    // обработка нажатия кнопки готов
+    public async Task UserReadyRequest()
+    {
+        // отправка запроса к хабу
+        await inGameService.UserReadyRequest(groupName!);
+
+        // перестаем отображать кнопку готов
+        isDisplay = false;
+        this.StateHasChanged();
+    }
+
+    //событие, когда выбирают ставку
+    public void StartBetEvent()
+    {
+        if(GameModel.State == GameState.ChangeMenu)
+        {
+            GameModel.State = GameState.Bet;
+        }
+    }
+
+    public void DisputeEvent()
+    {
+        if (GameModel.Bet is null)
+            return;
+
+        inGameService.Dispute(GameModel.GameName, GameModel.CurUser!);
+        GameModel.State = GameState.Dispute;
+    }
+
+}

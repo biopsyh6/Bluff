@@ -1,0 +1,206 @@
+body {
+  margin: 0;
+}
+
+#background{
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  position: fixed;
+}
+
+#logo {
+    position: absolute;
+    top: 15vh;
+    width: 40vw;
+    filter: drop-shadow(10px 10px 10px black);
+}
+
+.fon {
+    position: absolute;
+    background-color: #333333;
+    top: 0;
+    left: 50vw;
+    width: 50vw;
+    height: 100vh;
+    box-shadow: 0 0 50px 6px black;
+    z-index: 2;
+}
+
+.p-ruls {
+    width: 70%;
+    font-size: 14px;
+    margin: 100px 15%;
+    color: #d0e3f7;
+}
+
+.bottom {
+    box-shadow: 0 0 50px 8px black;
+    z-index: 0;
+}
+
+.top {
+    z-index: 2;
+}
+
+.choice {
+    position: absolute;
+    display: flex;
+    background-color: #333333;
+    height: 50px;
+    width: 150px;
+    right: 49.85vw;
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+    /*justify-content: ;*/
+    align-items: center;
+    cursor: pointer;
+}
+
+.ruls {
+    top: 25vh;
+}
+
+.servers {
+    top: 65vh;
+}
+
+.p-choice {
+    color: #d0e3f7;
+    font-size: 20px;
+    margin: 0 20px;
+}
+
+.choice.highlight {
+    /*outline: 2px solid red;*/
+    border-bottom: 2px solid #d0e3f7;
+    border-top: 2px solid #d0e3f7;
+    border-left: 2px solid #d0e3f7;
+    z-index: 4;
+}
+
+.fon.highlight {
+    border-left: 2px solid #d0e3f7;
+}
+
+h1, h2, h3, h4, h5, h6, p, li {
+    color: whitesmoke;
+}
+
+div.container {
+    display: grid;
+    grid-template-columns: repeat(10, 50px);
+    grid-template-rows: repeat(7, 50px);
+    grid-gap: 5px;
+}
+
+div.item {
+    background-color: rgb(156, 177, 208);
+    box-shadow: 0px 0px 0px 5px rgb(49, 76, 129);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+div.item.star {
+    color: whitesmoke;
+    background-image: url('../images/star.png');
+    background-size: cover; /* –аст€гивает изображение, чтобы заполнить весь блок */
+    background-repeat: no-repeat; /* «апрещает повторение изображени€ */
+    background-position: center center; /* ¬ыравнивает изображение по центру */
+}
+
+div.item.available {
+    background-color: rgb(80, 101, 225);
+    cursor: pointer;
+}
+
+div.current {
+    width: 40px;
+    height: 40px;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+div.center {
+    grid-column: 4/ 8;
+    grid-row: 3/ 6;
+    background-color: rgb(156, 177, 208);
+    border: 4px solid rgb(17, 23, 59); /*dark blue*/
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+p.center{
+    color: rgb(37, 41, 70);
+}
+
+div.cube {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    margin: 8px;
+    cursor: pointer;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.serverName {
+    font-size: 20px;
+    text-decoration: none;
+    color: #d0e3f7;
+    margin: 20px;
+}
+
+    .serverName:hover {
+        color: #57b9ff;
+    }
+
+table {
+    width: 100%;
+}
+
+/* CSS стили дл€ модального окна */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(0,0,0);
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    position: relative;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }

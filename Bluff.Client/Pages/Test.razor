@@ -1,0 +1,95 @@
+﻿@page "/test"
+
+<style>
+    table {
+        border-collapse: collapse;
+    }
+
+    td {
+        background-color: rgb(156, 177, 208);
+        width: 50px;
+        height: 50px;
+        border: 5px solid rgb(49, 76, 129);
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    td.empty{
+            border: none;
+            background-color: white;
+    }
+
+    div.container{
+        display: grid;
+        grid-template-columns: repeat(10, 50px);
+        grid-template-rows: repeat(7, 50px);
+        grid-gap: 5px;
+    }
+
+    div.item{
+        background-color: rgb(156, 177, 208);
+        box-shadow: 0px 0px 0px 5px rgb(49, 76, 129);
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    div.center{
+        grid-column: 4/ 8;
+        grid-row: 3/ 6;
+        border: 4px solid rgb(49, 76, 129);
+        border-radius: 10px;
+    }
+</style>
+
+<h3>Игровое поле</h3>
+
+@{
+    Board board = new();
+    // Создаем двумерный массив для хранения объектов Cell
+    Cell[,] cells = board.ToMatrix();
+}
+
+<table>
+    @for (int row = 0; row < 7; row++)
+    {
+        <tr>
+            @for (int col = 0; col < 10; col++)
+            {
+                @if (cells[row, col] is null || cells[row, col].Value == 0)
+                {
+                    <td class="empty"></td>
+                }
+                else if (cells[row, col].IsStar)
+                {
+                    <td>*<br/>@(cells[row, col]?.Value.ToString())</td>
+                }
+                else
+                {
+                    <td>@(cells[row, col]?.Value.ToString())</td>
+                }
+            }
+        </tr>
+    }
+</table>
+
+<br />
+<br />
+
+<div class="container">
+    @foreach (var cell in board.Cells)
+    {
+        <div class="item" style="grid-column: @(cell.Position.column + 1)/ @(cell.Position.column + 2);
+                                grid-row: @(cell.Position.row + 1)/ @(cell.Position.row + 2);">
+            @cell.Value
+            @if (cell.IsStar)
+            {
+                <p>*</p>
+            }
+        </div>
+    }
+    <div class="center">
+        Center
+    </div>
+</div>
+<br />
+<br />

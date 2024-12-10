@@ -1,0 +1,160 @@
+﻿@inject IInGameHubService InGameService
+@inject GameModel GameModel
+@inject IJSRuntime JS
+
+@if (GameModel.State == GameState.Bet && cubeSelected) @* Если игрок делает ставку и значение кубика уже выбрал *@
+{
+    <div class="container">
+        @* Заполняю поле так, чтоб были выделенные допустимые ячейки *@
+        @foreach (var cell in GameModel.GameBoard.AvailableCells(minSelectCount, selectedIsStar))
+        {
+            <div class="item @((cell.IsAvailable && cell.IsStar == selectedIsStar) ? "available" : "") 
+                 @(cell.IsStar ? "star" : "")"
+                 style="grid-column: @(cell.Position.column + 1)/ @(cell.Position.column + 2);
+                                    grid-row: @(cell.Position.row + 1)/ @(cell.Position.row + 2);"
+                 @onclick="() => SelectCount(cell.Id, cell.Value, cell.IsStar)">
+
+                @cell.Value
+            </div>
+        }
+        @* В центре при выборе ячейки пишем значение кубика *@
+        <div class="center">
+            <p>Выбранное значение: @(cube + 1)</p>
+        </div>
+    </div>
+}
+else 
+@* Если игрок ожидает ставку или еще не выбрал значение кубика *@
+{
+    <div class="container">
+        @foreach (var cell in GameModel.GameBoard.Cells)
+        {
+            <div class="item @(cell.IsStar ? "star" : "")"
+                 style="grid-column: @(cell.Position.column + 1)/ @(cell.Position.column + 2);
+                                grid-row: @(cell.Position.row + 1)/ @(cell.Position.row + 2);">
+                @if(curId == cell.Id)
+                {
+                    <div class="current" style="@GetMainCubePath(cube + 1)">
+
+                    </div>
+                }
+                else
+                {
+                    @cell.Value
+                }
+            </div>
+        }
+        @* Блок с областью в центре *@
+        <div class="center">
+            @if (GameModel.State == GameState.Bet) @* Если игрок делает ставку, то даем выбрать кубик *@
+            { 
+                @* В цикле заполняем кубики, в которых значение - число *@
+                @for (int i = 1; i < 6; i++)
+                {
+                    int ind = i - 1;
+                    <div class="cube"
+                        style="@GetMainCubePath(i)"
+                        @onclick="() => SelectCube(ind)">
+                        
+                    </div>
+                }
+                @* Отдельно сделал звездочку *@
+                <div class="cube"
+                     style="@GetMainCubePath(6)"
+                    @onclick="() => SelectCube(5)">
+                    
+                </div>
+                <br />
+            }
+            else if(GameModel.State == GameState.EndGame) @* Если игра закончилась, то пишем победителя *@
+            {
+                <p class="center">Победил @GameModel?.WinnerName</p>
+            }
+            else @* Во всех остальных случаях выводим количество кубиков в игре *@
+            {
+                <p class="center">Кубиков в игре: @GameModel.CountOfCubes</p>
+            }
+        </div>
+    </div>
+}
+
+
+@code {
+    private int count; //Количество значений(для ставки)
+    private int curId; //Id поля, на котором сейчас
+    private int cube; //Значение кубика(для ставки)
+    private bool selectedIsStar; //Является ли выбранный кубик звездой
+    private int minSelectCount; //Определяем минимальный номер ячейки, которую можно выбрать
+    private bool cubeSelected = false; //Проверяем, выбрал ли игрок кубик
+
+    //Метод, чтоб сделать ставку
+    public void PlaceBet()
+    {
+        if(InGameService.PlaceABetRequest(GameModel.GameName, GameModel.CurUser!, cube, count, curId).Result)
+        {
+            Console.WriteLine("Good");
+        }
+        else
+        {
+            Console.WriteLine(InGameService.ErrorMessage);
+        }
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        // await JS.InvokeVoidAsync("generateHexGrid");
+
+        GameModel.UpdatePage += this.StateHasChanged;
+        //Подписка на получение ставки
+        InGameService.CreateConnection("GetNewBet", (Bet newBet, string nextUser) =>
+        {
+            GameModel.GetNewBet(newBet, nextUser);
+            count = newBet.Count;
+            cube = newBet.CubeValue;
+            curId = newBet.CellId;
+
+            this.StateHasChanged();
+        });
+
+        InGameService.CreateConnection("ResetBet", () =>
+        {
+            count = 0;
+            cube = 0;
+            curId = 0;
+
+            this.StateHasChanged();
+        });
+
+        await InGameService.ConnectToHub();
+    }
+
+    //Метод для выбора кубика
+    public void SelectCube(int cubeValue)
+    {
+        //Если выбрали больше, чем было, то можно выбрать ту же ячейку
+        minSelectCount = (cubeValue > cube) ? curId : curId + 1;
+
+        cube = cubeValue;
+        cubeSelected = true;
+        selectedIsStar = cube == 5;
+    }
+
+    //ВЫбираем позицию
+    public void SelectCount(int cellId, int value, bool isStar)
+    {
+        if (cellId < minSelectCount || selectedIsStar != isStar)
+            return;
+
+        curId = cellId;
+        count = value;
+        PlaceBet();
+        cubeSelected = false;
+    }
+
+    public string GetMainCubePath(int num)
+    {
+        return "background-image: url('../images/main_cube_" + num + ".png');";
+    }
+
+
+}

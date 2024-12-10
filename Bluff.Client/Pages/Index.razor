@@ -1,0 +1,51 @@
+﻿<link href="css/cite.css" rel="stylesheet" />
+@page "/"
+@inject IJSRuntime JSRuntime
+
+
+<PageTitle>Bluff</PageTitle>
+<svg id="background">
+    <g id="hexGrid"></g>
+    @* <g id="bet"></g> *@
+</svg>
+
+<img src="images/logo.jpg" id="logo"/>
+
+
+@*Блок для выбора правил*@
+<div class="bottom choice ruls"></div>
+<div class="top choice ruls highlight" id="ruls" @onclick="() => ruleOrServers = true">
+    <p class="p-choice">Правила</p>
+</div>
+
+@* Блок для выбора серверов *@
+<div class="bottom choice servers"></div>
+<div class="top choice servers" id="servers" @onclick="() => ruleOrServers = false">
+    <p class="p-choice">Сервера</p>
+</div>
+
+<div class="fon highlight">
+    @if (ruleOrServers)
+    {
+        <Rules />
+    }
+    else
+    {
+        <ServerList />
+    }
+</div>
+
+
+@code{
+    bool ruleOrServers = true;
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("import", "/js/background.js");
+            await JSRuntime.InvokeVoidAsync("import", "/js/index.js");
+        }
+    }
+}
+
